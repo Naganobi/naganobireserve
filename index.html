@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>来訪アンケート</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7f3;
+        --panel: #ffffff;
+        --text: #1d2522;
+        --muted: #66736d;
+        --line: #d9e0dc;
+        --accent: #0f766e;
+        --accent-strong: #115e59;
+        --accent-soft: #e0f2ef;
+        --error: #b42318;
+        --shadow: 0 24px 70px rgba(29, 37, 34, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", Meiryo, sans-serif;
+        color: var(--text);
+        background:
+          linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 40%),
+          var(--bg);
+      }
+
+      body.modal-open {
+        overflow: hidden;
+      }
+
+      button,
+      select,
+      input {
+        font: inherit;
+      }
+
+      .survey-shell {
+        width: min(100%, 920px);
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+
+      .survey-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: clamp(24px, 5vw, 48px);
+      }
+
+      .survey-heading {
+        margin-bottom: 32px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--accent-strong);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.15;
+      }
+
+      .lead {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.8;
+      }
+
+      .survey-form {
+        display: grid;
+        gap: 28px;
+      }
+
+      .question-group {
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+
+      legend {
+        margin-bottom: 14px;
+        font-weight: 700;
+        line-height: 1.6;
+      }
+
+      .required {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: #ffffff;
+        background: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+        vertical-align: middle;
+      }
+
+      .choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .choice-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 64px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .choice-card:has(input:checked) {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+      }
+
+      .choice-card input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent);
+      }
+
+      .choice-card span {
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .people-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .people-grid label {
+        display: grid;
+        gap: 8px;
+      }
+
+      .people-grid span {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      select {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: #ffffff;
+      }
+
+      select:focus,
+      .choice-card:focus-within {
+        outline: 3px solid rgba(15, 118, 110, 0.2);
+        outline-offset: 2px;
+      }
+
+      .submit-button {
+        justify-self: start;
+        min-height: 52px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 8px;
+        color: #ffffff;
+        background: var(--accent);
+        font-weight: 700;
+        cursor: pointer;
+        transition: background-color 160ms ease, transform 160ms ease;
+      }
+
+      .submit-button:hover {
+        background: var(--accent-strong);
+      }
+
+      .submit-button:active {
+        transform: translateY(1px);
+      }
+
+      .error-message {
+        min-height: 22px;
+        margin: 8px 0 0;
+        color: var(--error);
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .result {
+        margin-top: 28px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f8faf9;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .result h2 {
+        margin: 0 0 10px;
+        font-size: 1.15rem;
+      }
+
+      .result dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 8px 18px;
+        margin: 0;
+      }
+
+      .result dt {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .result dd {
+        margin: 0;
+      }
+
+      .qr-panel {
+        display: grid;
+        gap: 12px;
+      }
+
+      .qr-button {
+        width: min(100%, 240px);
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        cursor: zoom-in;
+      }
+
+      .qr-button:focus {
+        outline: 3px solid rgba(15, 118, 110, 0.28);
+        outline-offset: 4px;
+      }
+
+      .qr-image {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+
+      .qr-button:hover .qr-image {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(29, 37, 34, 0.14);
+      }
+
+      .qr-empty {
+        display: grid;
+        place-items: center;
+        min-height: 180px;
+        padding: 16px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.7;
+      }
+
+      .qr-output {
+        min-height: 92px;
+        max-height: 180px;
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--text);
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 1rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .modal[hidden] {
+        display: none;
+      }
+
+      .modal-backdrop {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        background: rgba(16, 24, 21, 0.58);
+        cursor: zoom-out;
+      }
+
+      .modal-panel {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 16px;
+        width: min(100%, 520px);
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+        padding: 20px;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .modal-close {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--text);
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .modal-close:hover {
+        background: #f2f5f4;
+      }
+
+      .modal-qr-image {
+        width: min(100%, 420px);
+        height: auto;
+        justify-self: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .modal-output {
+        max-height: 160px;
+      }
+
+      @media (max-width: 640px) {
+        .survey-shell {
+          padding: 20px 12px;
+        }
+
+        .choice-grid,
+        .people-grid,
+        .result-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .submit-button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="survey-shell">
+      <section class="survey-panel" aria-labelledby="survey-title">
+        <div class="survey-heading">
+          <p class="eyebrow">Questionnaire</p>
+          <h1 id="survey-title">来訪アンケート</h1>
+          <p class="lead">該当する項目を選択し、人数を入力してください。</p>
+        </div>
+
+        <form id="survey-form" class="survey-form" novalidate>
+          <fieldset class="question-group">
+            <legend>1. ご利用日は平日ですか、休日ですか？ <span class="required">必須</span></legend>
+            <div class="choice-grid">
+              <label class="choice-card">
+                <input type="radio" name="dayType" value="weekday" required />
+                <span>平日</span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="dayType" value="holiday" />
+                <span>休日</span>
+              </label>
+            </div>
+            <p class="error-message" data-error-for="dayType"></p>
+          </fieldset>
+
+          <fieldset class="question-group">
+            <legend>2. お住まいは市内ですか、市外ですか？ <span class="required">必須</span></legend>
+            <div class="choice-grid">
+              <label class="choice-card">
+                <input type="radio" name="areaType" value="inside" required />
+                <span>市内</span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="areaType" value="outside" />
+                <span>市外</span>
+              </label>
+            </div>
+            <p class="error-message" data-error-for="areaType"></p>
+          </fieldset>
+
+          <fieldset class="question-group">
+            <legend>3. 人数を入力してください</legend>
+            <div class="people-grid">
+              <label>
+                <span>大人</span>
+                <select name="adultCount" aria-label="大人の人数">
+                  <option value="0">0人</option>
+                  <option value="1">1人</option>
+                  <option value="2">2人</option>
+                  <option value="3">3人</option>
+                  <option value="4">4人</option>
+                  <option value="5">5人</option>
+                  <option value="6">6人</option>
+                  <option value="7">7人</option>
+                  <option value="8">8人</option>
+                  <option value="9">9人</option>
+                  <option value="10">10人</option>
+                </select>
+              </label>
+
+              <label>
+                <span>小学生</span>
+                <select name="elementaryCount" aria-label="小学生の人数">
+                  <option value="0">0人</option>
+                  <option value="1">1人</option>
+                  <option value="2">2人</option>
+                  <option value="3">3人</option>
+                  <option value="4">4人</option>
+                  <option value="5">5人</option>
+                  <option value="6">6人</option>
+                  <option value="7">7人</option>
+                  <option value="8">8人</option>
+                  <option value="9">9人</option>
+                  <option value="10">10人</option>
+                </select>
+              </label>
+
+              <label>
+                <span>未就学児</span>
+                <select name="preschoolCount" aria-label="未就学児の人数">
+                  <option value="0">0人</option>
+                  <option value="1">1人</option>
+                  <option value="2">2人</option>
+                  <option value="3">3人</option>
+                  <option value="4">4人</option>
+                  <option value="5">5人</option>
+                  <option value="6">6人</option>
+                  <option value="7">7人</option>
+                  <option value="8">8人</option>
+                  <option value="9">9人</option>
+                  <option value="10">10人</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <button class="submit-button" type="submit">QRコードを発行</button>
+        </form>
+
+        <section id="result" class="result" aria-live="polite" hidden></section>
+      </section>
+    </main>
+
+    <div id="qr-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title" hidden>
+      <button class="modal-backdrop" type="button" data-close-modal aria-label="QRコード拡大表示を閉じる"></button>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="qr-modal-title">QRコード</h2>
+          <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
+        </div>
+        <img id="qr-modal-image" class="modal-qr-image" alt="拡大表示されたQRコード" />
+        <pre id="qr-modal-output" class="qr-output modal-output"></pre>
+      </div>
+    </div>
+
+    <script>
+      const form = document.querySelector("#survey-form");
+      const result = document.querySelector("#result");
+      const modal = document.querySelector("#qr-modal");
+      const modalImage = document.querySelector("#qr-modal-image");
+      const modalOutput = document.querySelector("#qr-modal-output");
+
+      const labels = {
+        dayType: {
+          weekday: "平日",
+          holiday: "休日",
+        },
+        areaType: {
+          inside: "市内",
+          outside: "市外",
+        },
+      };
+
+      const errors = {
+        dayType: "平日または休日を選択してください。",
+        areaType: "市内または市外を選択してください。",
+      };
+
+      const codeMap = {
+        weekday: {
+          inside: {
+            adultCount: "A",
+            elementaryCount: "B",
+            preschoolCount: "C",
+          },
+          outside: {
+            adultCount: "D",
+            elementaryCount: "E",
+            preschoolCount: "F",
+          },
+        },
+        holiday: {
+          inside: {
+            adultCount: "G",
+            elementaryCount: "H",
+            preschoolCount: "I",
+          },
+          outside: {
+            adultCount: "J",
+            elementaryCount: "K",
+            preschoolCount: "L",
+          },
+        },
+      };
+
+      function setError(name, message = "") {
+        const errorElement = document.querySelector(`[data-error-for="${name}"]`);
+        if (errorElement) {
+          errorElement.textContent = message;
+        }
+      }
+
+      function validateRequiredRadios(formData) {
+        let isValid = true;
+
+        Object.entries(errors).forEach(([name, message]) => {
+          if (!formData.get(name)) {
+            setError(name, message);
+            isValid = false;
+          } else {
+            setError(name);
+          }
+        });
+
+        return isValid;
+      }
+
+      function buildQrLines(formData) {
+        const dayType = formData.get("dayType");
+        const areaType = formData.get("areaType");
+        const selectedCodes = codeMap[dayType][areaType];
+
+        return Object.entries(selectedCodes).flatMap(([countName, code]) => {
+          const count = Number(formData.get(countName));
+          return Array.from({ length: count }, () => code);
+        });
+      }
+
+      function getQrImageUrl(value, size = "240x240") {
+        return `https://api.qrserver.com/v1/create-qr-code/?size=${size}&data=${encodeURIComponent(value)}`;
+      }
+
+      function openQrModal(qrText) {
+        modalImage.src = getQrImageUrl(qrText, "420x420");
+        modalOutput.textContent = qrText;
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        modal.querySelector(".modal-close").focus();
+      }
+
+      function closeQrModal() {
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+      }
+
+      function renderResult(formData) {
+        const adultCount = Number(formData.get("adultCount"));
+        const elementaryCount = Number(formData.get("elementaryCount"));
+        const preschoolCount = Number(formData.get("preschoolCount"));
+        const totalCount = adultCount + elementaryCount + preschoolCount;
+        const qrLines = buildQrLines(formData);
+        const qrText = qrLines.join("\n");
+        const displayQrText = qrText || "人数が0人のため、出力コードはありません。";
+
+        result.hidden = false;
+        result.innerHTML = `
+          <div class="result-grid">
+            <div>
+              <h2>発行内容</h2>
+              <dl>
+                <dt>利用日</dt>
+                <dd>${labels.dayType[formData.get("dayType")]}</dd>
+                <dt>お住まい</dt>
+                <dd>${labels.areaType[formData.get("areaType")]}</dd>
+                <dt>大人</dt>
+                <dd>${adultCount}人</dd>
+                <dt>小学生</dt>
+                <dd>${elementaryCount}人</dd>
+                <dt>未就学児</dt>
+                <dd>${preschoolCount}人</dd>
+                <dt>合計</dt>
+                <dd>${totalCount}人</dd>
+              </dl>
+            </div>
+
+            <div class="qr-panel">
+              <h2>QRコード</h2>
+              ${
+                qrText
+                  ? `<button class="qr-button" type="button" data-qr-text="${encodeURIComponent(qrText)}" aria-label="QRコードを拡大表示">
+                      <img class="qr-image" src="${getQrImageUrl(qrText)}" alt="発行されたQRコード" />
+                    </button>`
+                  : `<div class="qr-empty">人数を1人以上選択するとQRコードが表示されます。</div>`
+              }
+              <pre class="qr-output">${displayQrText}</pre>
+            </div>
+          </div>
+        `;
+      }
+
+      form.addEventListener("change", (event) => {
+        if (event.target.matches('input[type="radio"]')) {
+          setError(event.target.name);
+        }
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        if (!validateRequiredRadios(formData)) {
+          result.hidden = true;
+          return;
+        }
+
+        renderResult(formData);
+      });
+
+      result.addEventListener("click", (event) => {
+        const qrButton = event.target.closest(".qr-button");
+        if (!qrButton) {
+          return;
+        }
+
+        openQrModal(decodeURIComponent(qrButton.dataset.qrText));
+      });
+
+      modal.addEventListener("click", (event) => {
+        if (event.target.matches("[data-close-modal]")) {
+          closeQrModal();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) {
+          closeQrModal();
+        }
+      });
+    </script>
+  </body>
+</html>
