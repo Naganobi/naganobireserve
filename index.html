@@ -543,6 +543,17 @@
         areaType: "市内または市外を選択してください。",
       };
 
+      const urlCountParams = {
+        adultCount: ["adult", "client_adult", "CLIENT_ADULT"],
+        elementaryCount: ["child", "client_child", "CLIENT_CHILD"],
+        preschoolCount: ["baby", "client_baby", "CLIENT_BABY"],
+      };
+
+      const bookingDateParams = ["booking_date", "BOOKING_DATE"];
+      const postcodeParams = ["postcode", "client_postcode", "CLIENT_POSTCODE"];
+      const holidayApiUrl = "https://holidays-jp.github.io/api/v1/date.json";
+      const postcodeApiUrl = "https://zipcloud.ibsnet.co.jp/api/search";
+
       const codeMap = {
         weekday: {
           inside: {
@@ -569,6 +580,161 @@
           },
         },
       };
+
+      function clampCount(value) {
+        const count = Number.parseInt(value, 10);
+        if (Number.isNaN(count)) {
+          return null;
+        }
+
+        return Math.min(Math.max(count, 0), 10);
+      }
+
+      function getUrlCountValue(params, names) {
+        for (const name of names) {
+          if (params.has(name)) {
+            return clampCount(params.get(name));
+          }
+        }
+
+        return null;
+      }
+
+      function applyCountsFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+
+        Object.entries(urlCountParams).forEach(([fieldName, paramNames]) => {
+          const count = getUrlCountValue(params, paramNames);
+          const select = form.elements[fieldName];
+
+          if (count !== null && select) {
+            select.value = String(count);
+          }
+        });
+      }
+
+      function getFirstUrlParam(params, names) {
+        for (const name of names) {
+          if (params.has(name)) {
+            return params.get(name);
+          }
+        }
+
+        return null;
+      }
+
+      function normalizeBookingDate(value) {
+        if (!value) {
+          return null;
+        }
+
+        const trimmed = value.trim();
+        const compactMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
+        const separatedMatch = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+        const match = compactMatch || separatedMatch;
+
+        if (!match) {
+          return null;
+        }
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+          return null;
+        }
+
+        return [
+          String(year).padStart(4, "0"),
+          String(month).padStart(2, "0"),
+          String(day).padStart(2, "0"),
+        ].join("-");
+      }
+
+      function selectDayType(dayType) {
+        const radio = form.querySelector(`input[name="dayType"][value="${dayType}"]`);
+
+        if (radio) {
+          radio.checked = true;
+          setError("dayType");
+        }
+      }
+
+      async function applyDayTypeFromBookingDate() {
+        const params = new URLSearchParams(window.location.search);
+        const bookingDate = normalizeBookingDate(getFirstUrlParam(params, bookingDateParams));
+
+        if (!bookingDate) {
+          return;
+        }
+
+        const date = new Date(`${bookingDate}T00:00:00`);
+        const dayOfWeek = date.getDay();
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          selectDayType("holiday");
+          return;
+        }
+
+        try {
+          const response = await fetch(holidayApiUrl);
+          if (!response.ok) {
+            selectDayType("weekday");
+            return;
+          }
+
+          const holidays = await response.json();
+          selectDayType(Object.prototype.hasOwnProperty.call(holidays, bookingDate) ? "holiday" : "weekday");
+        } catch {
+          selectDayType("weekday");
+        }
+      }
+
+      function normalizePostcode(value) {
+        if (!value) {
+          return null;
+        }
+
+        const postcode = value.replace(/[^\d]/g, "");
+        return postcode.length === 7 ? postcode : null;
+      }
+
+      function selectAreaType(areaType) {
+        const radio = form.querySelector(`input[name="areaType"][value="${areaType}"]`);
+
+        if (radio) {
+          radio.checked = true;
+          setError("areaType");
+        }
+      }
+
+      async function applyAreaTypeFromPostcode() {
+        const params = new URLSearchParams(window.location.search);
+        const postcode = normalizePostcode(getFirstUrlParam(params, postcodeParams));
+
+        if (!postcode) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${postcodeApiUrl}?zipcode=${postcode}`);
+          if (!response.ok) {
+            return;
+          }
+
+          const data = await response.json();
+          const addresses = Array.isArray(data.results) ? data.results : [];
+          const isNaganoCity = addresses.some((address) => {
+            return address.address1 === "長野県" && address.address2 === "長野市";
+          });
+
+          selectAreaType(isNaganoCity ? "inside" : "outside");
+        } catch {
+          // 郵便番号APIが利用できない場合は、手入力できるよう未選択のままにします。
+        }
+      }
 
       function setError(name, message = "") {
         const errorElement = document.querySelector(`[data-error-for="${name}"]`);
@@ -703,6 +869,10 @@
           closeQrModal();
         }
       });
+
+      applyCountsFromUrl();
+      applyDayTypeFromBookingDate();
+      applyAreaTypeFromPostcode();
     </script>
   </body>
 </html>
