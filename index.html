@@ -834,7 +834,7 @@
         const preschoolCount = Number(formData.get("preschoolCount"));
         const totalCount = adultCount + elementaryCount + preschoolCount;
         const qrLines = buildQrLines(formData);
-        const qrText = qrLines.join("\n");
+        const qrText = qrLines.join("\r\n");
         const displayQrText = qrText || "人数が0人のため、出力コードはありません。";
 
         result.hidden = false;
