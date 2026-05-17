@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>来訪アンケート</title>
+    <title>ながのこども館入館手続きQRコード</title>
     <style>
       :root {
         color-scheme: light;
@@ -59,6 +59,19 @@
 
       .survey-heading {
         margin-bottom: 32px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+
+      .title-logo {
+        width: min(32vw, 160px);
+        height: auto;
+        flex: 0 0 auto;
       }
 
       .eyebrow {
@@ -210,6 +223,22 @@
         color: var(--error);
         font-size: 0.9rem;
         font-weight: 700;
+      }
+
+      .area-note {
+        display: none;
+        margin: 10px 0 0;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: #fff7ed;
+        color: #9a3412;
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.7;
+      }
+
+      .question-group:has(input[name="areaType"][value="inside"]:checked) .area-note {
+        display: block;
       }
 
       .result {
@@ -402,6 +431,15 @@
         .submit-button {
           width: 100%;
         }
+
+        .title-row {
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .title-logo {
+          width: 92px;
+        }
       }
     </style>
   </head>
@@ -409,14 +447,17 @@
     <main class="survey-shell">
       <section class="survey-panel" aria-labelledby="survey-title">
         <div class="survey-heading">
-          <p class="eyebrow">Questionnaire</p>
-          <h1 id="survey-title">来訪アンケート</h1>
-          <p class="lead">該当する項目を選択し、人数を入力してください。</p>
+          <p class="eyebrow">ながのこども館ながノビ</p>
+          <div class="title-row">
+            <h1 id="survey-title">ながのこども館入館手続きQRコード</h1>
+            <img class="title-logo" src="logo.png" alt="ながのこども館ながノビ ロゴ" />
+          </div>
+          <p class="lead">ご予約時の内容と変更が無いかご確認ください。</p>
         </div>
 
         <form id="survey-form" class="survey-form" novalidate>
           <fieldset class="question-group">
-            <legend>1. ご利用日は平日ですか、休日ですか？ <span class="required">必須</span></legend>
+            <legend>1. ご利用日は平日ですか、土・日・祝日ですか？ <span class="required">必須</span></legend>
             <div class="choice-grid">
               <label class="choice-card">
                 <input type="radio" name="dayType" value="weekday" required />
@@ -424,24 +465,25 @@
               </label>
               <label class="choice-card">
                 <input type="radio" name="dayType" value="holiday" />
-                <span>休日</span>
+                <span>土・日・祝日</span>
               </label>
             </div>
             <p class="error-message" data-error-for="dayType"></p>
           </fieldset>
 
           <fieldset class="question-group">
-            <legend>2. お住まいは市内ですか、市外ですか？ <span class="required">必須</span></legend>
+            <legend>2. 長野市民ですか、市外からお越しの方ですか？ <span class="required">必須</span></legend>
             <div class="choice-grid">
               <label class="choice-card">
                 <input type="radio" name="areaType" value="inside" required />
-                <span>市内</span>
+                <span>長野市民</span>
               </label>
               <label class="choice-card">
                 <input type="radio" name="areaType" value="outside" />
-                <span>市外</span>
+                <span>市外からお越しの方</span>
               </label>
             </div>
+            <p class="area-note">※レジで運転免許証もしくはマイナンバーカード等をご提示ください。</p>
             <p class="error-message" data-error-for="areaType"></p>
           </fieldset>
 
@@ -449,8 +491,8 @@
             <legend>3. 人数を入力してください</legend>
             <div class="people-grid">
               <label>
-                <span>大人</span>
-                <select name="adultCount" aria-label="大人の人数">
+                <span>中学生以上</span>
+                <select name="adultCount" aria-label="中学生以上の人数">
                   <option value="0">0人</option>
                   <option value="1">1人</option>
                   <option value="2">2人</option>
@@ -530,17 +572,17 @@
       const labels = {
         dayType: {
           weekday: "平日",
-          holiday: "休日",
+          holiday: "土・日・祝日",
         },
         areaType: {
-          inside: "市内",
-          outside: "市外",
+          inside: "長野市民",
+          outside: "市外からお越しの方",
         },
       };
 
       const errors = {
-        dayType: "平日または休日を選択してください。",
-        areaType: "市内または市外を選択してください。",
+        dayType: "平日または土・日・祝日を選択してください。",
+        areaType: "長野市民または市外からお越しの方を選択してください。",
       };
 
       const urlCountParams = {
@@ -557,26 +599,26 @@
       const codeMap = {
         weekday: {
           inside: {
-            adultCount: "A",
-            elementaryCount: "B",
-            preschoolCount: "C",
+            adultCount: "4800000000019",
+            elementaryCount: "4800000000026",
+            preschoolCount: "4800000000033",
           },
           outside: {
-            adultCount: "D",
-            elementaryCount: "E",
-            preschoolCount: "F",
+            adultCount: "4800000000071",
+            elementaryCount: "4800000000088",
+            preschoolCount: "4800000000095",
           },
         },
         holiday: {
           inside: {
-            adultCount: "G",
-            elementaryCount: "H",
-            preschoolCount: "I",
+            adultCount: "4800000000040",
+            elementaryCount: "4800000000057",
+            preschoolCount: "4800000000064",
           },
           outside: {
-            adultCount: "J",
-            elementaryCount: "K",
-            preschoolCount: "L",
+            adultCount: "4800000000101",
+            elementaryCount: "4800000000118",
+            preschoolCount: "4800000000125",
           },
         },
       };
@@ -805,7 +847,7 @@
                 <dd>${labels.dayType[formData.get("dayType")]}</dd>
                 <dt>お住まい</dt>
                 <dd>${labels.areaType[formData.get("areaType")]}</dd>
-                <dt>大人</dt>
+                <dt>中学生以上</dt>
                 <dd>${adultCount}人</dd>
                 <dt>小学生</dt>
                 <dd>${elementaryCount}人</dd>
