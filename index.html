@@ -778,6 +778,36 @@
         }
       }
 
+      function shouldAutoGenerateQr() {
+        const params = new URLSearchParams(window.location.search);
+        const autoValue = params.get("auto");
+
+        return autoValue === "1" || autoValue === "true";
+      }
+
+      function generateQrFromCurrentForm() {
+        const formData = new FormData(form);
+        if (!validateRequiredRadios(formData)) {
+          result.hidden = true;
+          return false;
+        }
+
+        renderResult(formData);
+        return true;
+      }
+
+      async function initializeFromUrl() {
+        applyCountsFromUrl();
+        await Promise.all([
+          applyDayTypeFromBookingDate(),
+          applyAreaTypeFromPostcode(),
+        ]);
+
+        if (shouldAutoGenerateQr()) {
+          generateQrFromCurrentForm();
+        }
+      }
+
       function setError(name, message = "") {
         const errorElement = document.querySelector(`[data-error-for="${name}"]`);
         if (errorElement) {
@@ -881,14 +911,7 @@
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-
-        const formData = new FormData(form);
-        if (!validateRequiredRadios(formData)) {
-          result.hidden = true;
-          return;
-        }
-
-        renderResult(formData);
+        generateQrFromCurrentForm();
       });
 
       result.addEventListener("click", (event) => {
@@ -912,9 +935,7 @@
         }
       });
 
-      applyCountsFromUrl();
-      applyDayTypeFromBookingDate();
-      applyAreaTypeFromPostcode();
+      initializeFromUrl();
     </script>
   </body>
 </html>
