@@ -586,11 +586,12 @@
       };
 
       const urlCountParams = {
-        adultCount: ["adult", "client_adult", "CLIENT_ADULT"],
         elementaryCount: ["child", "client_child", "CLIENT_CHILD"],
         preschoolCount: ["baby", "client_baby", "CLIENT_BABY"],
       };
 
+      const adultCountParams = ["adult", "client_adult", "CLIENT_ADULT"];
+      const carCountParams = ["car", "client_car", "CLIENT_CAR"];
       const bookingDateParams = ["booking_date", "BOOKING_DATE"];
       const postcodeParams = ["postcode", "client_postcode", "CLIENT_POSTCODE"];
       const holidayApiUrl = "https://holidays-jp.github.io/api/v1/date.json";
@@ -624,12 +625,13 @@
       };
 
       function clampCount(value) {
-        const count = Number.parseInt(value, 10);
-        if (Number.isNaN(count)) {
+        const match = String(value).match(/\d+/);
+        if (!match) {
           return null;
         }
 
-        return Math.min(Math.max(count, 0), 10);
+        const count = Number.parseInt(match[0], 10);
+        return Math.min(Math.max(count, 0), 99);
       }
 
       function getUrlCountValue(params, names) {
@@ -642,15 +644,38 @@
         return null;
       }
 
+      function setSelectCount(select, count) {
+        if (!select) {
+          return;
+        }
+
+        const value = String(count);
+        if (!select.querySelector(`option[value="${value}"]`)) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = `${value}人`;
+          select.appendChild(option);
+        }
+
+        select.value = value;
+      }
+
       function applyCountsFromUrl() {
         const params = new URLSearchParams(window.location.search);
+        const adultCount = getUrlCountValue(params, adultCountParams) || 0;
+        const carCount = getUrlCountValue(params, carCountParams) || 0;
+        const adultSelect = form.elements.adultCount;
+
+        if (adultSelect && (adultCount > 0 || carCount > 0 || adultCountParams.some((name) => params.has(name)) || carCountParams.some((name) => params.has(name)))) {
+          setSelectCount(adultSelect, adultCount + carCount);
+        }
 
         Object.entries(urlCountParams).forEach(([fieldName, paramNames]) => {
           const count = getUrlCountValue(params, paramNames);
           const select = form.elements[fieldName];
 
           if (count !== null && select) {
-            select.value = String(count);
+            setSelectCount(select, count);
           }
         });
       }
@@ -743,6 +768,14 @@
         return postcode.length === 7 ? postcode : null;
       }
 
+      function getFallbackAreaTypeFromPostcode(postcode) {
+        if (postcode.startsWith("380")) {
+          return "inside";
+        }
+
+        return null;
+      }
+
       function selectAreaType(areaType) {
         const radio = form.querySelector(`input[name="areaType"][value="${areaType}"]`);
 
@@ -772,9 +805,17 @@
             return address.address1 === "長野県" && address.address2 === "長野市";
           });
 
-          selectAreaType(isNaganoCity ? "inside" : "outside");
+          if (addresses.length > 0) {
+            selectAreaType(isNaganoCity ? "inside" : "outside");
+            return;
+          }
         } catch {
-          // 郵便番号APIが利用できない場合は、手入力できるよう未選択のままにします。
+          // 郵便番号APIが利用できない場合は、下の補助判定に進みます。
+        }
+
+        const fallbackAreaType = getFallbackAreaTypeFromPostcode(postcode);
+        if (fallbackAreaType) {
+          selectAreaType(fallbackAreaType);
         }
       }
 
