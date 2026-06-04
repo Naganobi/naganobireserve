@@ -741,17 +741,24 @@
           return;
         }
 
+        // Show the weekday selection immediately while the holiday API is checked.
+        selectDayType("weekday");
+
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 3000);
+
         try {
-          const response = await fetch(holidayApiUrl);
+          const response = await fetch(holidayApiUrl, { signal: controller.signal });
           if (!response.ok) {
-            selectDayType("weekday");
             return;
           }
 
           const holidays = await response.json();
           selectDayType(Object.prototype.hasOwnProperty.call(holidays, dateKey) ? "holiday" : "weekday");
         } catch {
-          selectDayType("weekday");
+          // Keep the weekday selection when the holiday API is unavailable.
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       }
 
