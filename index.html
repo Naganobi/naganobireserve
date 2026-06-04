@@ -596,6 +596,35 @@
       const postcodeParams = ["postcode", "client_postcode", "CLIENT_POSTCODE"];
       const holidayApiUrl = "https://holidays-jp.github.io/api/v1/date.json";
       const postcodeApiUrl = "https://zipcloud.ibsnet.co.jp/api/search";
+      const initialUrlParams = readInitialUrlParams();
+
+      function decodeBase64Url(value) {
+        try {
+          const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+          const bytes = Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+          return new TextDecoder().decode(bytes);
+        } catch {
+          return null;
+        }
+      }
+
+      function readInitialUrlParams() {
+        const visibleParams = new URLSearchParams(window.location.search);
+        const encodedData = visibleParams.get("data");
+        const decodedData = encodedData ? decodeBase64Url(encodedData) : null;
+        const params = decodedData === null ? visibleParams : new URLSearchParams(decodedData);
+
+        if (window.location.search) {
+          try {
+            window.history.replaceState(null, "", `${window.location.pathname}${window.location.hash}`);
+          } catch {
+            // Some local-file environments do not allow the History API.
+          }
+        }
+
+        return params;
+      }
 
       const codeMap = {
         weekday: {
@@ -661,7 +690,7 @@
       }
 
       function applyCountsFromUrl() {
-        const params = new URLSearchParams(window.location.search);
+        const params = initialUrlParams;
         const adultCount = getUrlCountValue(params, adultCountParams) || 0;
         const carCount = getUrlCountValue(params, carCountParams) || 0;
         const adultSelect = form.elements.adultCount;
@@ -730,7 +759,7 @@
       }
 
       async function applyDayTypeFromBookingDate() {
-        const params = new URLSearchParams(window.location.search);
+        const params = initialUrlParams;
         const bookingDate = normalizeBookingDate(getFirstUrlParam(params, bookingDateParams));
 
         if (!bookingDate) {
@@ -786,7 +815,7 @@
       }
 
       async function applyAreaTypeFromPostcode() {
-        const params = new URLSearchParams(window.location.search);
+        const params = initialUrlParams;
         const postcode = normalizePostcode(getFirstUrlParam(params, postcodeParams));
 
         if (!postcode) {
@@ -820,7 +849,7 @@
       }
 
       function shouldAutoGenerateQr() {
-        const params = new URLSearchParams(window.location.search);
+        const params = initialUrlParams;
         const autoValue = params.get("auto");
 
         return autoValue === "1" || autoValue === "true";
