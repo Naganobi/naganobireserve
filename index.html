@@ -592,7 +592,6 @@
 
       const adultCountParams = ["adult", "client_adult", "CLIENT_ADULT"];
       const carCountParams = ["car", "client_car", "CLIENT_CAR"];
-      const bookingDateParams = ["booking_date", "BOOKING_DATE"];
       const postcodeParams = ["postcode", "client_postcode", "CLIENT_POSTCODE"];
       const holidayApiUrl = "https://holidays-jp.github.io/api/v1/date.json";
       const postcodeApiUrl = "https://zipcloud.ibsnet.co.jp/api/search";
@@ -719,36 +718,6 @@
         return null;
       }
 
-      function normalizeBookingDate(value) {
-        if (!value) {
-          return null;
-        }
-
-        const trimmed = value.trim();
-        const compactMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
-        const separatedMatch = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-        const match = compactMatch || separatedMatch;
-
-        if (!match) {
-          return null;
-        }
-
-        const year = Number(match[1]);
-        const month = Number(match[2]);
-        const day = Number(match[3]);
-        const date = new Date(year, month - 1, day);
-
-        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-          return null;
-        }
-
-        return [
-          String(year).padStart(4, "0"),
-          String(month).padStart(2, "0"),
-          String(day).padStart(2, "0"),
-        ].join("-");
-      }
-
       function selectDayType(dayType) {
         const radio = form.querySelector(`input[name="dayType"][value="${dayType}"]`);
 
@@ -758,16 +727,14 @@
         }
       }
 
-      async function applyDayTypeFromBookingDate() {
-        const params = initialUrlParams;
-        const bookingDate = normalizeBookingDate(getFirstUrlParam(params, bookingDateParams));
-
-        if (!bookingDate) {
-          return;
-        }
-
-        const date = new Date(`${bookingDate}T00:00:00`);
-        const dayOfWeek = date.getDay();
+      async function applyDayTypeFromAccessDate() {
+        const accessDate = new Date();
+        const dayOfWeek = accessDate.getDay();
+        const dateKey = [
+          String(accessDate.getFullYear()).padStart(4, "0"),
+          String(accessDate.getMonth() + 1).padStart(2, "0"),
+          String(accessDate.getDate()).padStart(2, "0"),
+        ].join("-");
 
         if (dayOfWeek === 0 || dayOfWeek === 6) {
           selectDayType("holiday");
@@ -782,7 +749,7 @@
           }
 
           const holidays = await response.json();
-          selectDayType(Object.prototype.hasOwnProperty.call(holidays, bookingDate) ? "holiday" : "weekday");
+          selectDayType(Object.prototype.hasOwnProperty.call(holidays, dateKey) ? "holiday" : "weekday");
         } catch {
           selectDayType("weekday");
         }
@@ -869,12 +836,21 @@
       async function initializeFromUrl() {
         applyCountsFromUrl();
         await Promise.all([
-          applyDayTypeFromBookingDate(),
+          applyDayTypeFromAccessDate(),
           applyAreaTypeFromPostcode(),
         ]);
 
         if (shouldAutoGenerateQr()) {
-          generateQrFromCurrentForm();
+          const generated = generateQrFromCurrentForm();
+
+          if (generated) {
+            window.requestAnimationFrame(() => {
+              result.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            });
+          }
         }
       }
 
