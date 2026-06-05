@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
     <title>ながのこども館入館手続きQRコード</title>
     <style>
       :root {
@@ -323,22 +324,6 @@
         line-height: 1.7;
       }
 
-      .qr-output {
-        min-height: 92px;
-        max-height: 180px;
-        margin: 0;
-        padding: 12px;
-        overflow: auto;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #ffffff;
-        color: var(--text);
-        font-family: Consolas, "Courier New", monospace;
-        font-size: 1rem;
-        line-height: 1.5;
-        white-space: pre-wrap;
-      }
-
       .modal {
         position: fixed;
         inset: 0;
@@ -411,10 +396,6 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         background: #ffffff;
-      }
-
-      .modal-output {
-        max-height: 160px;
       }
 
       @media (max-width: 640px) {
@@ -558,16 +539,15 @@
           <button class="modal-close" type="button" data-close-modal aria-label="閉じる">×</button>
         </div>
         <img id="qr-modal-image" class="modal-qr-image" alt="拡大表示されたQRコード" />
-        <pre id="qr-modal-output" class="qr-output modal-output"></pre>
       </div>
     </div>
 
+    <script src="qrcode.min.js"></script>
     <script>
       const form = document.querySelector("#survey-form");
       const result = document.querySelector("#result");
       const modal = document.querySelector("#qr-modal");
       const modalImage = document.querySelector("#qr-modal-image");
-      const modalOutput = document.querySelector("#qr-modal-output");
 
       const labels = {
         dayType: {
@@ -659,7 +639,7 @@
         }
 
         const count = Number.parseInt(match[0], 10);
-        return Math.min(Math.max(count, 0), 99);
+        return Math.min(Math.max(count, 0), 10);
       }
 
       function getUrlCountValue(params, names) {
@@ -695,7 +675,7 @@
         const adultSelect = form.elements.adultCount;
 
         if (adultSelect && (adultCount > 0 || carCount > 0 || adultCountParams.some((name) => params.has(name)) || carCountParams.some((name) => params.has(name)))) {
-          setSelectCount(adultSelect, adultCount + carCount);
+          setSelectCount(adultSelect, Math.min(adultCount + carCount, 10));
         }
 
         Object.entries(urlCountParams).forEach(([fieldName, paramNames]) => {
@@ -894,13 +874,15 @@
         });
       }
 
-      function getQrImageUrl(value, size = "240x240") {
-        return `https://api.qrserver.com/v1/create-qr-code/?size=${size}&data=${encodeURIComponent(value)}`;
+      function getQrImageDataUrl(value, cellSize = 8, margin = 4) {
+        const qr = qrcode(0, "M");
+        qr.addData(value);
+        qr.make();
+        return qr.createDataURL(cellSize, margin);
       }
 
       function openQrModal(qrText) {
-        modalImage.src = getQrImageUrl(qrText, "420x420");
-        modalOutput.textContent = qrText;
+        modalImage.src = getQrImageDataUrl(qrText, 12, 4);
         modal.hidden = false;
         document.body.classList.add("modal-open");
         modal.querySelector(".modal-close").focus();
@@ -918,7 +900,6 @@
         const totalCount = adultCount + elementaryCount + preschoolCount;
         const qrLines = buildQrLines(formData);
         const qrText = qrLines.join("\r\n");
-        const displayQrText = qrText || "人数が0人のため、出力コードはありません。";
 
         result.hidden = false;
         result.innerHTML = `
@@ -946,11 +927,10 @@
               ${
                 qrText
                   ? `<button class="qr-button" type="button" data-qr-text="${encodeURIComponent(qrText)}" aria-label="QRコードを拡大表示">
-                      <img class="qr-image" src="${getQrImageUrl(qrText)}" alt="発行されたQRコード" />
+                      <img class="qr-image" src="${getQrImageDataUrl(qrText)}" alt="発行されたQRコード" />
                     </button>`
                   : `<div class="qr-empty">人数を1人以上選択するとQRコードが表示されます。</div>`
               }
-              <pre class="qr-output">${displayQrText}</pre>
             </div>
           </div>
         `;
